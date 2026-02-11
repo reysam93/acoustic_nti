@@ -206,6 +206,59 @@ def save_plot_subgraph(A_est, th, lamb, directed=False, node_size=900, max_width
         print('\tSaved as:', file_name)
 
 
+def save_plot_subgraph_grid(A_est, thresholds, lamb, directed=False, 
+                            font_size=16, cmap='RdBu', 
+                            file_name=None, save=False):
+    num_plots = len(thresholds)
+    fig, axes = plt.subplots(1, num_plots, figsize=(6 * num_plots, 6))
+    
+    # Ensure axes is iterable even if num_plots is 1
+    if num_plots == 1:
+        axes = [axes]
+        
+    N = A_est.shape[0]
+
+    for i, th in enumerate(thresholds):
+        ax = axes[i]
+        
+        # Threshold the adjacency matrix
+        A_bin = np.where(np.abs(A_est) >= th, A_est, 0)
+        
+        # Extract subgraph: nodes connected to the last output nodes
+        connected_to_last = subgraph_indexes(np.abs(A_bin), N)
+        
+        if len(connected_to_last) == 0:
+            ax.text(0.5, 0.5, "No connected nodes", ha='center', va='center')
+            ax.set_title(f'Th={th}')
+            continue
+            
+        A_sub = A_est[np.ix_(connected_to_last, connected_to_last)]
+        
+        vmax = np.max(np.abs(A_sub)) if A_sub.size > 0 else 1
+        im = ax.imshow(A_sub, cmap=cmap, vmin=-vmax, vmax=vmax)
+        
+        ax.set_title(f'Th={th}')
+        
+        # Ticks and labels
+        ax.set_xticks(range(len(connected_to_last)))
+        ax.set_yticks(range(len(connected_to_last)))
+        ax.set_xticklabels([idx + 1 for idx in connected_to_last], fontsize=font_size-4, rotation=90)
+        ax.set_yticklabels([idx + 1 for idx in connected_to_last], fontsize=font_size-4)
+        
+        # Colorbar
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.15)
+        cbar = plt.colorbar(im, cax=cax)
+        cbar.ax.tick_params(labelsize=font_size-4)
+
+    plt.tight_layout()
+    
+    if file_name and save:
+        plt.savefig(file_name + '_grid.png', dpi=300, bbox_inches='tight')
+        plt.savefig(file_name + '_grid.pdf', bbox_inches='tight')
+        print(f'\tSaved grid plot as: {file_name}_grid.png')
+
+
 def compute_err_sparsity(A_ests, X, th, th_err=False, target_idx=None):
     sparsity = np.zeros(len(A_ests))
     err = np.zeros(len(A_ests))
