@@ -11,7 +11,7 @@ import csv
 N_Y_NODES = 2
 # font_size = 18
 
-def load_accoustic_data(path_data='data/EMO/', y_filename='Y.mat', x_key='dataX', y_key='dataY', all_data=False, plot_data=True, sum_data=True, figsize=(9,3), rm_extra_Y=True):
+def load_accoustic_data(path_data='data/EMO/', y_filename='Y.mat', x_key='dataX', y_key='dataY', all_data=False, plot_data=True, sum_data=True, figsize=(9,3), rm_extra_Y=True, standardize_Y=False):
     """
     Loads acoustic data from `X.mat` and `Y.mat`, combines them, and optionally plots and summarizes the data.
 
@@ -24,6 +24,7 @@ def load_accoustic_data(path_data='data/EMO/', y_filename='Y.mat', x_key='dataX'
     - sum_data (bool): If True, prints shape, range, and mean of the data. Defaults to True.
     - figsize (tuple): Size of the plot figure. Defaults to (9, 3).
     - rm_extra_Y (bool): If True, removes extra rows from Y if it has more than 2 rows. Defaults to True.
+    - standardize_Y (bool): If True, standardizes Y (mean 0, variance 1) along each row. Defaults to False.
 
     Returns:
     - Data (numpy.ndarray): Combined dataset from `X` and `Y`.
@@ -39,8 +40,16 @@ def load_accoustic_data(path_data='data/EMO/', y_filename='Y.mat', x_key='dataX'
         Y = scipy.io.loadmat(path_data + y_filename)[y_key].T
 
         if rm_extra_Y and Y.shape[0] > 2:
+            ### Column names from Luca's email: 
+            # pleasant eventful chaotic vibrant uneventful calm annoying monotonous appropriate
+
             print(f'Original Y shape: {Y.shape}. Keeping only the first 2 rows.')
             Y = Y[:2, :]
+
+        if standardize_Y:
+            std_Y = Y.std(axis=1, keepdims=True)
+            std_Y[std_Y == 0] = 1 # Avoid division by zero
+            Y = (Y - Y.mean(axis=1, keepdims=True)) / std_Y
 
         Data = np.vstack((X, Y))
 
